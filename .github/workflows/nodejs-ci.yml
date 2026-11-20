@@ -51,7 +51,7 @@ jobs:
 
   deploy:
     needs: build
-    if: needs.build.outputs.deploy-dir != ''
+    if: github.repository == 'ivmartel/dwv' && needs.build.outputs.deploy-dir != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write

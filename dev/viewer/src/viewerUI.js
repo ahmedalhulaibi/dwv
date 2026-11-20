@@ -650,9 +650,7 @@ export class ViewerUI {
     fileinput.addEventListener('change', (event) => {
       const files = event.target.files;
       if (files.length !== 0) {
-        this.#dwvAppService.loadFiles(files);
-      } else {
-        throw new Error('No files to load');
+        this.#dwvAppService.loadFiles(Array.from(files));
       }
     });
   }

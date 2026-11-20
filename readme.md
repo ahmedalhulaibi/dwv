@@ -1,5 +1,28 @@
 # DWV
 
+## Personal scan viewer
+
+Open [the installable viewer](https://ahmedalhulaibi.github.io/dwv/). It follows
+your device's light/dark theme and keeps the scan canvas black. The existing
+DWV library and test viewer remain available.
+
+- Open local DICOM files, ZIP archives or image files. Select a whole series
+  together. Folder import is available in browsers with a folder picker.
+- Install: Safari on iPhone/iPad → Share → Add to Home Screen; Android →
+  **Install app** or the browser's install menu.
+- Wait for **Available offline** before disconnecting. The application and
+  decoder workers are cached. Local scans stay in memory; reopen them after
+  closing the app. Scan files are not uploaded or saved in the service-worker
+  cache. Remote study URLs still require a connection.
+- Updates activate after all viewer windows are closed. Browser storage
+  eviction can remove offline access; reconnect and reload to restore it.
+- Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS
+  (or localhost for development). Paths support a subdirectory such as `/dwv/`.
+  `.github/workflows/pwa.yml` deploys this fork through GitHub Pages Actions.
+
+Installation behavior follows the [MDN PWA guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+This viewer is for personal viewing and is not certified for diagnostic use.
+
 DWV (DICOM Web Viewer) is an open source zero footprint medical image viewer library. It uses _only_ javascript and HTML5 technologies, meaning that it can be run on any platform that provides a modern browser (laptop, tablet, phone and even modern TVs). It can load local or remote data in DICOM format (the standard for medical imaging data such as MR, CT, Echo, Mammo, NM...) and provides standard tools for its manipulation such as scroll, contrast, zoom, pan, MPR, annotation and imaging filters such as threshold and sharpening.
 
 [![Node.js CI](https://github.com/ivmartel/dwv/actions/workflows/nodejs-ci.yml/badge.svg)](https://github.com/ivmartel/dwv/actions/workflows/nodejs-ci.yml) [![npm](https://img.shields.io/npm/v/dwv.svg)](https://www.npmjs.com/package/dwv)

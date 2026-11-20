@@ -67,6 +67,8 @@
     "build-ci": "yarn run pack && yarn run types && yarn run api-ci",
     "build-all": "yarn run build && yarn run pack-node",
     "build-demo": "webpack --config config/webpack.demo.js",
+    "build-pwa": "webpack --config config/webpack.pwa.js",
+    "lint-pwa": "eslint -c config/eslint.config-full.js 'app/**/*.js' config/webpack.pwa.js dev/viewer/src/dwvAppService.js dev/viewer/src/viewerUI.js",
     "lint": "eslint -c config/eslint.config-full.js 'src/**/*.js' 'tests/**/*.js' '*.js'",
     "test": "vitest",
     "test-ci": "vitest --coverage --watch false --reporter default --reporter json",

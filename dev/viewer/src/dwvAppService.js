@@ -131,6 +131,13 @@ export class DwvAppService extends EventTarget {
   #app;
 
   /**
+   * Whether to emit development diagnostics, including study metadata.
+   *
+   * @type {boolean}
+   */
+  #debug;
+
+  /**
    * Number of data to load.
    *
    * @type {number}
@@ -167,11 +174,15 @@ export class DwvAppService extends EventTarget {
 
   /**
    * Create the app with the viewer configuration.
+   *
+   * @param {object} [options] Viewer options.
+   * @param {boolean} [options.debug] Emit development diagnostics.
    */
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.#debug = options.debug ?? true;
     // logger level (optional)
-    logger.level = logger.levels.DEBUG;
+    logger.level = this.#debug ? logger.levels.DEBUG : logger.levels.ERROR;
 
     // custom overrides
     setupCustom();
@@ -258,7 +269,9 @@ export class DwvAppService extends EventTarget {
     };
 
     this.#app.addEventListener('error', (event) => {
-      console.error('load error', event, event.detail.error);
+      if (this.#debug) {
+        console.error('load error', event, event.detail.error);
+      }
       const message = event.detail.error.message;
       const isRenderError = typeof message !== 'undefined' &&
         message.startsWith('Render error');
@@ -269,11 +282,12 @@ export class DwvAppService extends EventTarget {
     });
     this.#app.addEventListener('loadstart', (event) => {
       // log
-      console.log('%c----------------', 'color: teal;');
-      console.log(
-        `load source data:${event.detail.dataid}`, event.detail.source);
-      // timer
-      console.time(`load-data-${event.detail.dataid}`);
+      if (this.#debug) {
+        console.log('%c----------------', 'color: teal;');
+        console.log(
+          `load source data:${event.detail.dataid}`, event.detail.source);
+        console.time(`load-data-${event.detail.dataid}`);
+      }
       // update load counters
       if (this.#numberOfDataToLoad === this.#numberOfLoadendData) {
         this.#numberOfDataToLoad = 0;
@@ -301,14 +315,16 @@ export class DwvAppService extends EventTarget {
       this.#redispatch(event);
     });
     this.#app.addEventListener('loaditem', (event) => {
-      if (typeof event.detail.warn !== 'undefined') {
+      if (this.#debug && typeof event.detail.warn !== 'undefined') {
         console.warn('load-warn', event.detail.warn);
       }
     });
     this.#app.addEventListener('loadend', (event) => {
       // update load counter
       ++this.#numberOfLoadendData;
-      console.timeEnd(`load-data-${event.detail.dataid}`);
+      if (this.#debug) {
+        console.timeEnd(`load-data-${event.detail.dataid}`);
+      }
       // remove abort shortcut
       document.removeEventListener('keydown', abortShortcut);
       this.#redispatch(event);
@@ -329,6 +345,24 @@ export class DwvAppService extends EventTarget {
    * logging, warnings, keyboard shortcuts and window resize.
    */
   #registerOtherListeners() {
+    if (this.#debug) {
+      this.#registerDebugListeners();
+    }
+
+    // default keyboard shortcuts, only when the viewer has focus
+    this.#getContainer().addEventListener('keydown', (event) => {
+      this.#app.defaultOnKeydown(event);
+    });
+    // default on resize
+    window.addEventListener('resize', () => {
+      this.#app.onResize();
+    });
+  }
+
+  /**
+   * Register development diagnostics.
+   */
+  #registerDebugListeners() {
     // filter
     this.#app.addEventListener('filterrun', (event) => {
       console.log('filterrun', event);
@@ -353,15 +387,6 @@ export class DwvAppService extends EventTarget {
 
     this.#app.addEventListener('warn', (event) => {
       console.log('warn', event);
-    });
-
-    // default keyboard shortcuts, only when the viewer has focus
-    this.#getContainer().addEventListener('keydown', (event) => {
-      this.#app.defaultOnKeydown(event);
-    });
-    // default on resize
-    window.addEventListener('resize', () => {
-      this.#app.onResize();
     });
   }
 
@@ -435,6 +460,13 @@ export class DwvAppService extends EventTarget {
   }
 
   // load
+
+  /**
+   * Abort every active load.
+   */
+  abortAllLoads() {
+    this.#app.abortAllLoads();
+  }
 
   /**
    * Load a list of files.
@@ -637,6 +669,9 @@ export class DwvAppService extends EventTarget {
    * @param {string} dataId The data ID.
    */
   #logMetaData(dataId) {
+    if (!this.#debug) {
+      return;
+    }
     const meta = this.#app.getDataController().get(dataId).meta;
 
     // log tags for data with transfer syntax (dicom)
