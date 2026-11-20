@@ -1,0 +1,8 @@
+node_modules/
+build/
+dist/
+tests/data/
+src/decoders/
+resources/api/dwv.api.md
+resources/doc/tutorials/user-stories.md
+resources/doc/tutorials/test-results.md

@@ -18,14 +18,14 @@ DWV library and test viewer remain available.
   eviction can remove offline access; reconnect and reload to restore it.
 - Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS
   (or localhost for development). Paths support a subdirectory such as `/dwv/`.
-  `.github/workflows/pwa.yml` deploys this fork through GitHub Pages Actions.
+  Deployment is manual. GitHub Actions is disabled; commits do not publish.
 
 Installation behavior follows the [MDN PWA guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
 This viewer is for personal viewing and is not certified for diagnostic use.
 
 DWV (DICOM Web Viewer) is an open source zero footprint medical image viewer library. It uses _only_ javascript and HTML5 technologies, meaning that it can be run on any platform that provides a modern browser (laptop, tablet, phone and even modern TVs). It can load local or remote data in DICOM format (the standard for medical imaging data such as MR, CT, Echo, Mammo, NM...) and provides standard tools for its manipulation such as scroll, contrast, zoom, pan, MPR, annotation and imaging filters such as threshold and sharpening.
 
-[![Node.js CI](https://github.com/ivmartel/dwv/actions/workflows/nodejs-ci.yml/badge.svg)](https://github.com/ivmartel/dwv/actions/workflows/nodejs-ci.yml) [![npm](https://img.shields.io/npm/v/dwv.svg)](https://www.npmjs.com/package/dwv)
+[![npm](https://img.shields.io/npm/v/dwv.svg)](https://www.npmjs.com/package/dwv)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=VQWYY8ZS75H3E&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHosted)
 
 Try a [live demo](https://ivmartel.github.io/dwv/) and read a lot more information on the [docs](https://ivmartel.github.io/dwv/doc/stable/) (such as [examples](https://ivmartel.github.io/dwv/doc/stable/tutorials/examples), [dicom conformance](https://ivmartel.github.io/dwv/doc/stable/tutorials/conformance), [pacs integrations](https://ivmartel.github.io/dwv/doc/stable/tutorials/integrations)). You can also check out the [wiki](https://github.com/ivmartel/dwv/wiki).
@@ -39,6 +39,10 @@ If you have questions, please [open an issue](https://www.github.com/ivmartel/dw
 
 ## Available Scripts
 
+- `setup`: install locked dependencies and activate the local Git hook
+- `format`: format staged paths in the working tree; stage fixes before committing
+- `verify`: formatting, lint, tests/coverage, library/API, demo, PWA and docs checks
+- `pre-commit`: run the checks against an isolated checkout of staged content
 - `ìnstall`: install dependencies
 - `lint`: run code linting
 - `test`: run tests with live reload
@@ -59,19 +63,28 @@ All scripts also work with `npm`.
 
 ```bash
 # get the code
-git clone https://github.com/ivmartel/dwv.git
+git clone https://github.com/ahmedalhulaibi/dwv.git
 
 # move to its folder
 cd dwv
 
-# install dependencies
-yarn install
+# install dependencies and activate local pre-commit checks (Node 26)
+corepack yarn setup
 
 # launch: will open a browser with example pages
 yarn run start
 ```
 
 This will open your default browser with the different example pages, check the 'viewer' link for a simple test viewer.
+
+The pre-commit hook checks the exact staged content and stops on failure.
+It preserves partial staging and untracked files. Formatting uses DWV's
+ESLint rules for JavaScript and Prettier for markup, styles and documentation.
+Run `corepack yarn format`, inspect the diff, then stage fixes. The hook
+also runs the full coverage suite, strict API checks and all browser builds.
+Dependency manifests, `yarn.lock` and Yarn configuration must be staged
+consistently. Build output from the hook is temporary. No GitHub workflows
+or automatic deployments run for this fork.
 
 ## Notes
 

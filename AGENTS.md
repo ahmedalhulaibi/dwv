@@ -36,7 +36,7 @@ yarn version. Without enabling it, `corepack yarn <script>` (for ex
 `corepack yarn test-ci`) does the same for a single command. Corepack is
 bundled with Node up to v24 only; from Node 25 install it first with
 `npm install -g corepack`. npm also works
-for all scripts. Node >= 18 required (CI uses Node 26). Module type is `"module"`
+for all scripts. Use Node 26 for the local checks. Module type is `"module"`
 (ESM throughout `src/`).
 
 ## DICOM standard
@@ -63,12 +63,16 @@ When upgrading to a newer edition, update together:
 
 ## Commands
 
-- `yarn install` — install dependencies.
+- `yarn setup` — install locked dependencies and activate `.githooks` locally.
+- `yarn format` — format staged paths in the working tree; stage the fixes.
+- `yarn verify` — run all local checks against the working tree.
+- `yarn pre-commit` — verify an isolated checkout of the Git index.
+- `yarn install` — install dependencies without changing Git hook settings.
 - `yarn start` — webpack-dev-server (`config/webpack.dev.js`), opens example
   pages, including the `dev/viewer/viewer.html` test viewer.
 - `yarn test` — run tests with vitest in watch mode.
 - `yarn test-ci` — one-shot vitest run with coverage (v8 provider, thresholds
-  50% statements/branches/functions/lines); this is what CI runs.
+  50% statements/branches/functions/lines); this runs before each commit.
 - Run a single test file: `yarn vitest run tests/image/image.test.js`
 - Run tests matching a name: `yarn vitest run -t "some test name"`
 - `yarn lint` — eslint over `src/**/*.js`, `tests/**/*.js`, `*.js` using
@@ -84,8 +88,8 @@ When upgrading to a newer edition, update together:
   file loading (the loaders rely on browser `XMLHttpRequest`/`FileReader`),
   so pass the raw bytes (`ArrayBuffer`) yourself; no web-worker based
   decompression of compressed pixel data, and no rendering (canvas, Konva).
-- `yarn build-demo` — builds the demo pages (`config/webpack.demo.js`), used
-  by CI to publish to `gh-pages`.
+- `yarn build-demo` — builds the demo pages (`config/webpack.demo.js`).
+- `yarn build-pwa` — builds the installable viewer in `build/pwa`.
 - `yarn doc` — generates jsdoc site (`resources/doc/jsdoc.conf.json`).
 
 Tests live in `tests/<area>/*.test.js` mirroring `src/<area>/`, using vitest
@@ -93,38 +97,32 @@ with `environment: 'node'` (jsdom pulled in as needed) and DICOM/zip/DICOMDIR
 fixtures under `tests/data`. Tests must run without printing logs: silence
 expected console or `logger` output with a spy.
 
-### What CI checks
+### Local pre-commit checks
 
-`.github/workflows/nodejs-ci.yml` runs on every push, pull request and
-merge-group, on Node 26 with yarn through corepack. A change passes when
-these steps all succeed, in this order:
+GitHub Actions is disabled. There are no GitHub workflows. After cloning,
+run `corepack yarn setup` once. Git uses `.githooks/pre-commit` in this clone.
 
-1. `yarn install --immutable` — `yarn.lock` must already match
-   `package.json`; commit the lockfile with any dependency change.
-2. `yarn lint` — no eslint errors. The jsdoc plugin's recommended rules
-   (missing jsdoc, params, returns...) are only warnings and don't fail
-   the step (there is no `--max-warnings`); the errors are the base
-   `eslint.config.js` rules plus `jsdoc/tag-lines` (one blank line before
-   the tags) and `jsdoc/require-description-complete-sentence`. Keep
-   warnings at zero anyway.
-3. `yarn test-ci` — all vitest tests pass and coverage stays at or above
-   50% for statements, branches, functions and lines (`vitest.config.js`).
-4. `yarn build-ci` — the webpack bundle, the `tsc` type generation (so the
-   jsdoc types must type-check) and api-extractor must all succeed. Its
-   `api-ci` step runs api-extractor without `--local`: it fails on any
-   api-extractor warning, and when the public API no longer matches the
-   committed `resources/api/dwv.api.md`. The local `yarn build` runs `api`
-   with `--local`, which rewrites `dwv.api.md` instead; commit that update
-   with the change that caused it.
+The hook validates locked dependencies, then verifies a temporary checkout
+of the exact Git index. It preserves unstaged and untracked files. Dependency
+manifests, lockfile and Yarn configuration must match the working tree.
 
-On pushes to `develop` or `master` CI also runs `yarn build-demo` and
-publishes the demo to `gh-pages` (`demo/trunk` or `demo/stable`). To
-reproduce CI locally, run `yarn lint && yarn test-ci && yarn build-ci`.
+Checks run in order and stop on failure:
 
-The `verify` skill (`.agents/skills/verify/SKILL.md`) wraps these steps with
-the repo-specific checks CI does not do: clean test output (no logs),
-reporting `dwv.api.md` changes and reviewing the diff against the
-conventions below. Use it before reporting a change as done.
+1. Staged formatting: existing ESLint layout rules for JavaScript; Prettier
+   for HTML/CSS/JSON/Markdown/YAML. Fixtures and generated documents are excluded.
+   Run `corepack yarn format`, inspect the diff, then stage fixes.
+2. Library, PWA and local-tooling lint. Keep warnings at zero.
+3. Full Vitest suite with coverage thresholds of 50% for statements,
+   branches, functions and lines. Expected application logs must be silenced.
+4. Strict library/API build (`build-ci`), demo build, PWA build and docs.
+   `api-ci` checks the committed API report without rewriting it. Use
+   `yarn api` deliberately when changing the public API, then stage the report.
+
+`corepack yarn verify` runs the same checks against the working tree.
+`corepack yarn pre-commit` runs the hook manually against staged content.
+Build output from the hook is temporary. Deployment is manual; commits do
+not publish the viewer. Never run property-based or mutation testing for
+this task. Use `.agents/skills/verify/SKILL.md` before reporting completion.
 
 ## Requirements traceability
 
@@ -137,7 +135,7 @@ below) and gets overwritten.
 Tests opt into traceability by suffixing their name with
 `- #<id> <name>`, e.g. in `tests/command/undoStack.test.js`:
 `test('UndoStack - #DWV-REQ-UI-08-002 Draw action undo/redo', ...)`. Both the
-id and the name after `#` must match a `user-stories.json` entry *verbatim*
+id and the name after `#` must match a `user-stories.json` entry _verbatim_
 (exact string equality) or the reference is reported as unresolved. Not
 every test needs a requirement reference — only ones demonstrating a
 specific user story.
@@ -184,8 +182,8 @@ via `app.getLoadController()`/`getDataController()`/etc., are the current
 recommended API.
 
 - `LoadController` — picks `FilesLoader`/`UrlsLoader`/`MemoryLoader` based on
-  input type, re-dispatches their load events tagged with `{dataid,
-  isfirstitem}` (`isfirstitem` on `loaditem` only). The former `loadtype`
+  input type. It re-dispatches load events tagged with
+  `{dataid, isfirstitem}` (`isfirstitem` on `loaditem` only). The former `loadtype`
   field was removed in v0.37 along with legacy `.json` state loading.
 - `DataController` — owns `#dataList: Record<dataId, DicomData>`. Its
   `#setDataContent` inspects Modality/pixel-data presence to route parsed
@@ -193,7 +191,7 @@ recommended API.
   (Modality `SR`), or `RtStructFactory` (Modality `RTSTRUCT`, rasterizes
   contours against an already-loaded reference series). Also handles
   multi-volume/4D data via `DicomSliceDataList`, buffering same-origin slices
-  until load completes (see *Multi-volume / 4D data* below).
+  until load completes (see _Multi-volume / 4D data_ below).
 - `StageController` — owns the single `Stage` (all `LayerGroup`s/layers).
   Creates `View`s via `ViewFactory` at render time (one `View` per
   layer/layer-group, even for a shared `Image`), builds `ViewLayer`/`DrawLayer`s,
@@ -221,7 +219,7 @@ recommended API.
    read the raw bytes (`FileReader`/`XMLHttpRequest`), and call `loader.load()`.
    DWV is a DICOMweb User Agent for retrieval only (WADO-URI, WADO-RS) —
    QIDO-RS and STOW-RS only exist in the `dev/pacs` demo, not core `src/`
-   (see *Project* above) — and has no DIMSE
+   (see _Project_ above) — and has no DIMSE
    networking (no C-STORE/C-FIND/C-MOVE/PDU/Association handling); it's
    HTTP/DICOMweb only.
 2. **DICOM parsing** (`src/dicom/`): `DicomParser.parse()` reads the preamble,
@@ -237,8 +235,8 @@ recommended API.
    using per-tag writing rules; `setRemovePrivateTags(true)` drops all
    odd-group tags (including inside sequences) and overrides the rules.
 3. **Pixel decompression** (`src/image/decoder.js`, `src/decoders/`): when a
-   decompression algo is needed, `DicomBufferToData` (`src/image/
-   dicomBufferToData.js`, called by `DicomDataLoader`) builds a
+   decompression algo is needed, `DicomBufferToData`
+   (`src/image/dicomBufferToData.js`, called by `DicomDataLoader`) builds a
    `PixelBufferDecoder` which dispatches to a `ThreadPool`
    (`src/utils/thread.js`) of web workers — `decoders/pdfjs/` (vendored
    Mozilla pdf.js, patched for 16-bit signed grayscale) handles JPEG
@@ -271,10 +269,10 @@ recommended API.
    `custom.wlPresets`). `View.generateImageData()` dispatches on
    `image.getPhotometricInterpretation()` to one of the pure pixel-fill
    functions `generateImageDataMonochrome`/`Rgb`/`YbrFull`/`PaletteColor`
-   (each in its own `view*.js` file), which use `WindowLut` (= `ModalityLut`
-   + `VoiLut`, from `rsi.js`/`voiLut.js`) and a `ColourMap` (`luts.js`) to
-   produce an `ImageData`. `ViewLayer` (`src/gui/viewLayer.js`) draws that to
-   a plain HTML5 `<canvas>` (2D context) — no Konva involved.
+   (each in its own `view*.js` file), which use `WindowLut` (combining
+   `ModalityLut` and `VoiLut`, from `rsi.js`/`voiLut.js`) and a `ColourMap`
+   (`luts.js`) to produce an `ImageData`. `ViewLayer` (`src/gui/viewLayer.js`)
+   draws that to a plain HTML5 `<canvas>` (2D context) — no Konva involved.
 
 `Stage` (`src/gui/stage.js`) → multiple `LayerGroup`s (`layerGroup.js`) →
 each owns `ViewLayer`s (canvas pixel rendering), `DrawLayer`s (Konva-based
@@ -288,7 +286,7 @@ axial/coronal/sagittal MPR views).
 Every concrete tool (`WindowLevel`, `Scroll`, `ZoomAndPan`, `Opacity`, `Draw`,
 `Brush`, `Filter`, `Floodfill`, `Livewire` — registered in `toolList.js`)
 extends `LayerGroupPointer`, which normalises pointer/touch input into a
-drag lifecycle and is *composed* (not subclassed) from pluggable behaviors
+drag lifecycle and is _composed_ (not subclassed) from pluggable behaviors
 under `src/tools/behaviors/` (`dragBehavior`, `wheelBehavior`,
 `hoverBehavior`, `doubleClickBehavior`, `tapBehavior`, `twoTouchBehavior`,
 plus draw/brush/floodfill/livewire-specific variants). `src/tools/shapes/`
@@ -313,7 +311,7 @@ Two parallel models, both stored alongside regular pixel data on `DicomData`:
   offset-editing, per-segment volume/centroid/diameter labeling — off the
   base pixel class), with a segment list (number/colour/name) managed by
   `MaskSegmentHelper` (`src/image/maskSegmentHelper.js`, deliberately does
-  *not* touch pixels itself — pixel edits go through undoable commands).
+  _not_ touch pixels itself — pixel edits go through undoable commands).
   `MaskImage` owns a `SegmentCollection` (per-segment ROI slice buffers) and
   an `ImageContour` for outline-style rendering.
 - **Annotations** (DICOM SR, or drawing tools → `DicomData.annotationGroup`):
