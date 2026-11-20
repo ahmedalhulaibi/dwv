@@ -57,6 +57,20 @@ export class FilesLoader extends LoadHandlers {
   #defaultCharacterSet;
 
   /**
+   * Generation of the current file selection.
+   *
+   * @type {number}
+   */
+  #loadId = 0;
+
+  /**
+   * Whether the current selection can deliver load callbacks.
+   *
+   * @type {boolean}
+   */
+  #isLoading = false;
+
+  /**
    * Get the default character set.
    *
    * @returns {string} The default character set.
@@ -80,6 +94,8 @@ export class FilesLoader extends LoadHandlers {
    * @param {File[]} data The input data.
    */
   #storeInputData(data) {
+    this.#loadId++;
+    this.#isLoading = true;
     this.#inputData = data;
     // reset counters
     this.#nLoad = 0;
@@ -153,6 +169,7 @@ export class FilesLoader extends LoadHandlers {
     // (not using the input event since it is
     //   an individual load end)
     if (this.#nLoadend === this.#inputData.length) {
+      this.#isLoading = false;
       this.onloadend({
         source: this.#inputData
       });
@@ -189,6 +206,21 @@ export class FilesLoader extends LoadHandlers {
   #getLoadHandler(loader, dataElement, i) {
     return (event) => {
       loader.load(event.target.result, dataElement, i);
+    };
+  }
+
+  /**
+   * Ignore callbacks queued before cancellation or a new file selection.
+   *
+   * @param {eventFn} callback The load callback.
+   * @returns {eventFn} A callback scoped to the current selection.
+   */
+  #getCurrentLoadCallback(callback) {
+    const loadId = this.#loadId;
+    return (event) => {
+      if (loadId === this.#loadId && this.#isLoading) {
+        callback(event);
+      }
     };
   }
 
@@ -236,12 +268,13 @@ export class FilesLoader extends LoadHandlers {
         });
         // set loader callbacks
         // loader.onloadstart: nothing to do
-        loader.onprogress = mproghandler.getUndefinedMonoProgressHandler(1);
-        loader.onloaditem = this.onloaditem;
-        loader.onload = this.#addLoad;
-        loader.onloadend = this.#addLoadend;
-        loader.onerror = this.onerror;
-        loader.onabort = this.onabort;
+        loader.onprogress = this.#getCurrentLoadCallback(
+          mproghandler.getUndefinedMonoProgressHandler(1));
+        loader.onloaditem = this.#getCurrentLoadCallback(this.onloaditem);
+        loader.onload = this.#getCurrentLoadCallback(this.#addLoad);
+        loader.onloadend = this.#getCurrentLoadCallback(this.#addLoadend);
+        loader.onerror = this.#getCurrentLoadCallback(this.onerror);
+        loader.onabort = this.#getCurrentLoadCallback(this.onabort);
 
         // store loader
         this.#storeLoader(loader);
@@ -250,18 +283,21 @@ export class FilesLoader extends LoadHandlers {
       }
     }
     if (!foundLoader) {
+      this.#isLoading = false;
       throw new Error(`No loader found for file: ${dataElement.name}`);
+    }
+
+    // Validate the entire selection before starting asynchronous readers.
+    for (const element of data) {
+      if (!loader.canLoadFile(element)) {
+        this.#isLoading = false;
+        throw new Error(`Input file of different type: ${element}`);
+      }
     }
 
     // loop on I/O elements
     for (let i = 0; i < data.length; ++i) {
       dataElement = data[i];
-
-      // check loader
-      if (!loader.canLoadFile(dataElement)) {
-        throw new Error(`Input file of different type: ${dataElement}`);
-      }
-
       /**
        * The file reader.
        *
@@ -275,22 +311,24 @@ export class FilesLoader extends LoadHandlers {
 
       // set reader callbacks
       // reader.onloadstart: nothing to do
-      reader.onprogress = this.#augmentCallbackEvent(
-        mproghandler.getMonoProgressHandler(i, 0), dataElement);
-      reader.onload = this.#getLoadHandler(loader, dataElement, i);
+      reader.onprogress = this.#getCurrentLoadCallback(
+        this.#augmentCallbackEvent(
+          mproghandler.getMonoProgressHandler(i, 0), dataElement));
+      reader.onload = this.#getCurrentLoadCallback(
+        this.#getLoadHandler(loader, dataElement, i));
       // reader.onloadend: nothing to do
       const errorCallback =
         this.#augmentCallbackEvent(this.onerror, dataElement);
-      reader.onerror = (event) => {
+      reader.onerror = this.#getCurrentLoadCallback((event) => {
         this.#addLoadend();
         errorCallback(event);
-      };
+      });
       const abortCallback =
         this.#augmentCallbackEvent(this.onabort, dataElement);
-      reader.onabort = (event) => {
+      reader.onabort = this.#getCurrentLoadCallback((event) => {
         this.#addLoadend();
         abortCallback(event);
-      };
+      });
       // read
       if (loader.loadFileAs() === fileContentTypes.Text) {
         reader.readAsText(dataElement);
@@ -306,6 +344,11 @@ export class FilesLoader extends LoadHandlers {
    * Abort a load.
    */
   abort() {
+    if (!this.#isLoading) {
+      return;
+    }
+    this.#isLoading = false;
+    this.#loadId++;
     // abort readers
     for (let i = 0; i < this.#readers.length; ++i) {
       // 0: EMPTY, 1: LOADING, 2: DONE
@@ -317,6 +360,9 @@ export class FilesLoader extends LoadHandlers {
     if (this.#runningLoader && this.#runningLoader.isLoading()) {
       this.#runningLoader.abort();
     }
+    this.onabort({source: this.#inputData.length === 1
+      ? this.#inputData[0] : this.#inputData});
+    this.onloadend({source: this.#inputData});
   }
 
 } // class FilesLoader
