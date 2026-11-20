@@ -2,6 +2,7 @@ import {DwvAppService} from '../dev/viewer/src/dwvAppService.js';
 import {ViewerUI} from '../dev/viewer/src/viewerUI.js';
 import {getURLsFromKeyValueUri} from '../src/utils/uri.js';
 import {setupInstall} from './install.js';
+import {setupDiagnostics} from './diagnostics.js';
 
 const service = new DwvAppService({debug: false});
 service.registerListeners();
@@ -16,6 +17,7 @@ const cancel = byId('cancel-load');
 const fileInput = byId('fileinput');
 const folderInput = byId('folderinput');
 const errorBox = byId('error');
+const diagnostics = setupDiagnostics(service, document);
 let pendingLoads = 0;
 let hasLoadError = false;
 let loadCancelled = false;
@@ -25,13 +27,15 @@ const showError = (message) => {
   errorBox.hidden = false;
 };
 
-const loadFiles = (files) => {
+const loadFiles = (files, method) => {
   if (files.length === 0) {
     return;
   }
+  diagnostics.beginFiles(files, method);
   try {
     service.loadFiles(Array.from(files));
-  } catch {
+  } catch (error) {
+    diagnostics.capture(error, 'error');
     showError('These files could not be opened. ' +
       'Choose DICOM files, images or a ZIP archive.');
   }
@@ -41,11 +45,16 @@ for (const button of document.querySelectorAll('[data-open-files]')) {
   button.addEventListener('click', () => fileInput.click());
 }
 // ViewerUI owns the file-input change handler.
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length !== 0) {
+    diagnostics.beginFiles(fileInput.files, 'files');
+  }
+}, {capture: true});
 fileInput.addEventListener('click', () => {
   fileInput.value = '';
 });
 folderInput.addEventListener('change', () => {
-  loadFiles(folderInput.files);
+  loadFiles(folderInput.files, 'folder');
   folderInput.value = '';
 });
 if ('webkitdirectory' in folderInput) {
@@ -67,7 +76,7 @@ dropzone.addEventListener('dragleave', () => {
 dropzone.addEventListener('drop', (event) => {
   event.preventDefault();
   dropzone.classList.remove('drag-over');
-  loadFiles(event.dataTransfer.files);
+  loadFiles(event.dataTransfer.files, 'drop');
 });
 byId('dismiss-error').addEventListener('click', () => {
   errorBox.hidden = true;
@@ -110,12 +119,16 @@ service.addEventListener('loadend', () => {
           ' · Files stay on this device';
   }
 });
-service.addEventListener('error', () => {
+const reportLoadError = () => {
   hasLoadError = true;
+  status.textContent = 'Some files could not be opened.';
   showError('A scan could not be opened. ' +
     'Check that all files in the series are selected ' +
-    'and that the file is supported.');
-});
+    'and that the file is supported. ' +
+    'You can copy technical details below.');
+};
+service.addEventListener('error', reportLoadError);
+service.addEventListener('timeout', reportLoadError);
 
 const layout = byId('changelayout');
 const layoutNames = {
@@ -206,5 +219,11 @@ new MutationObserver(labelStudyControls)
 setupInstall();
 const urls = getURLsFromKeyValueUri(window.location.href);
 if (typeof urls !== 'undefined') {
-  service.loadURLs(urls);
+  diagnostics.beginURLs(urls);
+  try {
+    service.loadURLs(urls);
+  } catch (error) {
+    diagnostics.capture(error, 'error');
+    reportLoadError();
+  }
 }

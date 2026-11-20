@@ -1,87 +1,286 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Open and explore your DICOM scans on your device with DWV.">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f3f5f5" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111617" media="(prefers-color-scheme: dark)">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="DWV">
-  <title>DWV · Your scan viewer</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#workspace">Skip to scan viewer</a>
-  <header class="app-header">
-    <div class="brand"><img src="./icons/icon.svg" width="36" height="36" alt=""><div><h1>DWV</h1><p>Your scan viewer</p></div></div>
-    <div class="header-actions">
-      <button id="install" hidden>Install app</button>
-      <button id="header-open-folder" hidden>Open folder</button>
-      <button id="help" aria-haspopup="dialog">Help</button>
-      <button class="primary" data-open-files><span aria-hidden="true">＋</span> Open files</button>
-    </div>
-    <input type="file" id="fileinput" multiple hidden>
-    <input type="file" id="folderinput" multiple webkitdirectory hidden>
-  </header>
-
-  <main id="workspace" class="workspace" tabindex="-1">
-    <section class="viewer" aria-label="Scan workspace">
-      <div class="viewer-heading"><h2>Scan workspace</h2><span id="connection">Online</span></div>
-      <div class="canvas-shell" id="dropzone">
-        <div id="dwv" tabindex="0" aria-label="Scan canvas. Focus here to use viewer keyboard shortcuts."></div>
-        <div class="empty-state" id="empty-state">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true"><path d="M18 7H9a2 2 0 0 0-2 2v9m31-11h9a2 2 0 0 1 2 2v9M7 38v9a2 2 0 0 0 2 2h9m31-11v9a2 2 0 0 1-2 2h-9" stroke="currentColor" stroke-width="2"/><circle cx="28" cy="28" r="13" stroke="currentColor" stroke-width="2"/><path d="M28 20v16m-8-8h16" stroke="currentColor" stroke-width="2"/></svg>
-          <h2>Open your scans</h2>
-          <p>Choose DICOM files or a ZIP archive.<br>You can also drop files here.</p>
-          <button class="primary" data-open-files>Open files</button>
-          <button id="open-folder" hidden>Open a folder</button>
-          <p class="privacy-note">Files stay on this device.<br>Reopen them after closing the app.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Open and explore your DICOM scans on your device with DWV."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#f3f5f5"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#111617"
+      media="(prefers-color-scheme: dark)"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="DWV" />
+    <title>DWV · Your scan viewer</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to scan viewer</a>
+    <header class="app-header">
+      <div class="brand">
+        <img src="./icons/icon.svg" width="36" height="36" alt="" />
+        <div>
+          <h1>DWV</h1>
+          <p>Your scan viewer</p>
         </div>
       </div>
-      <div class="load-state"><progress id="loadprogress" max="100" value="0" aria-label="Scan loading progress" hidden></progress><p id="load-status" role="status">Ready to open files</p><button id="cancel-load" hidden>Cancel load</button></div>
-      <div id="error" role="alert" hidden><p id="error-message"></p><button id="dismiss-error">Dismiss error</button></div>
-      <div id="tools-line"><fieldset id="tools" disabled><legend>Scan tools</legend></fieldset></div>
-      <div class="view-controls" id="layout-line">
-        <label for="changelayout">View</label><select id="changelayout" name="layout" disabled></select>
-        <button id="resetviews" disabled>Reset views</button>
-        <button id="undo" disabled>Undo</button><button id="redo" disabled>Redo</button>
-        <label class="check"><input type="checkbox" id="changesmoothing"> Smoothing</label>
+      <div class="header-actions">
+        <button id="install" hidden>Install app</button>
+        <button id="header-open-folder" hidden>Open folder</button>
+        <button id="help" aria-haspopup="dialog">Help</button>
+        <button class="primary" data-open-files>
+          <span aria-hidden="true">＋</span> Open files
+        </button>
       </div>
-      <p class="gesture-hint">Scroll through slices · Adjust contrast · Pinch to zoom</p>
-    </section>
+      <input type="file" id="fileinput" multiple hidden />
+      <input type="file" id="folderinput" multiple webkitdirectory hidden />
+    </header>
 
-    <aside class="inspector" aria-label="Study controls">
-      <details id="study-panel" open>
-        <summary>Study controls <span class="summary-hint">Layers, measurements &amp; display</span></summary>
-        <div class="panel-content">
-          <p id="study-empty">Open files to see layers and display settings.</p>
-          <div id="layersdetails" tabindex="0" aria-label="Study layers and display controls"></div>
-          <details class="advanced-section" open><summary>Position</summary><div id="position-line"><label for="position">World coordinates</label><input type="text" id="position" autocomplete="off" aria-describedby="positionspan"><span id="positionspan"></span><span id="temporalpositionspan"></span></div></details>
-          <details class="advanced-section"><summary>Linked views</summary><div id="binders-line"><fieldset id="binders"><legend>Binders</legend></fieldset></div></details>
-          <details class="advanced-section"><summary>Resampling</summary><div id="extra-line"><fieldset id="extra" disabled><legend>Rotate volume</legend><div id="rotate-line" class="line"><button id="rotate-x">X+</button><button id="rotate-y">Y+</button><button id="rotate-z">Z+</button><button id="rotate-match">Match</button><button id="rotate-reset">Reset</button></div></fieldset></div></details>
-          <details class="advanced-section"><summary>About DWV</summary><div id="about"></div></details>
+    <main id="workspace" class="workspace" tabindex="-1">
+      <section class="viewer" aria-label="Scan workspace">
+        <div class="viewer-heading">
+          <h2>Scan workspace</h2>
+          <span id="connection">Online</span>
         </div>
-      </details>
-    </aside>
-  </main>
+        <div class="canvas-shell" id="dropzone">
+          <div
+            id="dwv"
+            tabindex="0"
+            aria-label="Scan canvas. Focus here to use viewer keyboard shortcuts."
+          ></div>
+          <div class="empty-state" id="empty-state">
+            <svg
+              width="56"
+              height="56"
+              viewBox="0 0 56 56"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M18 7H9a2 2 0 0 0-2 2v9m31-11h9a2 2 0 0 1 2 2v9M7 38v9a2 2 0 0 0 2 2h9m31-11v9a2 2 0 0 1-2 2h-9"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <circle
+                cx="28"
+                cy="28"
+                r="13"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M28 20v16m-8-8h16"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+            <h2>Open your scans</h2>
+            <p>
+              Choose DICOM files or a ZIP archive.<br />You can also drop files
+              here.
+            </p>
+            <button class="primary" data-open-files>Open files</button>
+            <button id="open-folder" hidden>Open a folder</button>
+            <p class="privacy-note">
+              Files stay on this device.<br />Reopen them after closing the app.
+            </p>
+          </div>
+        </div>
+        <div class="load-state">
+          <progress
+            id="loadprogress"
+            max="100"
+            value="0"
+            aria-label="Scan loading progress"
+            hidden
+          ></progress>
+          <p id="load-status" role="status">Ready to open files</p>
+          <button id="cancel-load" hidden>Cancel load</button>
+        </div>
+        <div id="error" hidden>
+          <div class="error-summary">
+            <p id="error-message" role="alert"></p>
+            <button id="dismiss-error">Dismiss error</button>
+          </div>
+          <details id="error-diagnostics">
+            <summary>Technical details</summary>
+            <p class="diagnostic-note">
+              File names and scan metadata are omitted. Review technical
+              messages before sharing.
+            </p>
+            <button id="copy-diagnostics">Copy diagnostics</button>
+            <p id="copy-status" role="status"></p>
+            <label for="diagnostic-report">Diagnostic report</label>
+            <textarea
+              id="diagnostic-report"
+              readonly
+              rows="12"
+              spellcheck="false"
+              autocapitalize="off"
+            ></textarea>
+          </details>
+        </div>
+        <div id="tools-line">
+          <fieldset id="tools" disabled><legend>Scan tools</legend></fieldset>
+        </div>
+        <div class="view-controls" id="layout-line">
+          <label for="changelayout">View</label
+          ><select id="changelayout" name="layout" disabled></select>
+          <button id="resetviews" disabled>Reset views</button>
+          <button id="undo" disabled>Undo</button
+          ><button id="redo" disabled>Redo</button>
+          <label class="check"
+            ><input type="checkbox" id="changesmoothing" /> Smoothing</label
+          >
+        </div>
+        <p class="gesture-hint">
+          Scroll through slices · Adjust contrast · Pinch to zoom
+        </p>
+      </section>
 
-  <footer class="app-footer"><span>Local files · No uploads</span><span id="offline-status" role="status">Preparing offline access…</span><span>For personal viewing. Not for diagnosis.</span></footer>
+      <aside class="inspector" aria-label="Study controls">
+        <details id="study-panel" open>
+          <summary>
+            Study controls
+            <span class="summary-hint">Layers, measurements &amp; display</span>
+          </summary>
+          <div class="panel-content">
+            <p id="study-empty">
+              Open files to see layers and display settings.
+            </p>
+            <div
+              id="layersdetails"
+              tabindex="0"
+              aria-label="Study layers and display controls"
+            ></div>
+            <details class="advanced-section" open>
+              <summary>Position</summary>
+              <div id="position-line">
+                <label for="position">World coordinates</label
+                ><input
+                  type="text"
+                  id="position"
+                  autocomplete="off"
+                  aria-describedby="positionspan"
+                /><span id="positionspan"></span
+                ><span id="temporalpositionspan"></span>
+              </div>
+            </details>
+            <details class="advanced-section">
+              <summary>Linked views</summary>
+              <div id="binders-line">
+                <fieldset id="binders"><legend>Binders</legend></fieldset>
+              </div>
+            </details>
+            <details class="advanced-section">
+              <summary>Resampling</summary>
+              <div id="extra-line">
+                <fieldset id="extra" disabled>
+                  <legend>Rotate volume</legend>
+                  <div id="rotate-line" class="line">
+                    <button id="rotate-x">X+</button
+                    ><button id="rotate-y">Y+</button
+                    ><button id="rotate-z">Z+</button
+                    ><button id="rotate-match">Match</button
+                    ><button id="rotate-reset">Reset</button>
+                  </div>
+                </fieldset>
+              </div>
+            </details>
+            <details class="advanced-section">
+              <summary>About DWV</summary>
+              <div id="about"></div>
+            </details>
+          </div>
+        </details>
+      </aside>
+    </main>
 
-  <dialog id="help-dialog" aria-labelledby="help-title">
-    <div class="dialog-heading"><h2 id="help-title">Your scans, on your device</h2><form method="dialog"><button aria-label="Close help">✕</button></form></div>
-    <h3>Open a study</h3><p>Choose the DICOM files from your scan disc or download, or open a ZIP archive. Select all files in a series together. A folder picker is available where your browser supports it.</p>
-    <h3>Use the viewer</h3><p>Select a tool, then drag on the scan. Use Scroll for slices, Contrast for window/level, and Zoom / pan to move around. Two fingers zoom and pan. Study controls contain layers, colour maps, annotations, segmentation and export. Three-plane view requires a volume.</p>
-    <h3>Install on your phone</h3><p>On iPhone or iPad, open the Share menu in Safari, choose Add to Home Screen, then Open as Web App if offered. On Android, use Install app here or your browser’s Install app / Add to Home screen menu.</p>
-    <h3>Work offline</h3><p>Wait for “Available offline” before disconnecting. The app and image decoders are saved. Your scan files are not saved by the app; keep them on your device and reopen them each session. Remote study links require a connection. Browser storage can be cleared by your phone.</p>
-    <h3>Updates</h3><p>A new version takes effect after all app tabs and windows are closed and the app is reopened.</p>
-    <p class="fine-print">DWV is not certified for diagnostic use. <a href="https://github.com/ahmedalhulaibi/dwv" target="_blank" rel="noopener noreferrer">Source code</a> · <a href="https://github.com/ivmartel/dwv" target="_blank" rel="noopener noreferrer">Upstream DWV</a> · GPL-3.0</p>
-  </dialog>
-  <noscript><p class="noscript">Enable JavaScript to open scans in DWV.</p></noscript>
-</body>
+    <footer class="app-footer">
+      <span>Local files · No uploads</span
+      ><span id="offline-status" role="status">Preparing offline access…</span
+      ><span>For personal viewing. Not for diagnosis.</span>
+    </footer>
+
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="dialog-heading">
+        <h2 id="help-title">Your scans, on your device</h2>
+        <form method="dialog"><button aria-label="Close help">✕</button></form>
+      </div>
+      <h3>Open a study</h3>
+      <p>
+        Choose the DICOM files from your scan disc or download, or open a ZIP
+        archive. Select all files in a series together. A folder picker is
+        available where your browser supports it.
+      </p>
+      <h3>Use the viewer</h3>
+      <p>
+        Select a tool, then drag on the scan. Use Scroll for slices, Contrast
+        for window/level, and Zoom / pan to move around. Two fingers zoom and
+        pan. Study controls contain layers, colour maps, annotations,
+        segmentation and export. Three-plane view requires a volume.
+      </p>
+      <h3>Install on your phone</h3>
+      <p>
+        On iPhone or iPad, open the Share menu in Safari, choose Add to Home
+        Screen, then Open as Web App if offered. On Android, use Install app
+        here or your browser’s Install app / Add to Home screen menu.
+      </p>
+      <h3>Work offline</h3>
+      <p>
+        Wait for “Available offline” before disconnecting. The app and image
+        decoders are saved. Your scan files are not saved by the app; keep them
+        on your device and reopen them each session. Remote study links require
+        a connection. Browser storage can be cleared by your phone.
+      </p>
+      <h3>Updates</h3>
+      <p>
+        A new version takes effect after all app tabs and windows are closed and
+        the app is reopened.
+      </p>
+      <h3>Report a load error</h3>
+      <p>
+        Expand Technical details below an error, then select Copy diagnostics.
+        Review the report before sharing it. File names, scan contents and DICOM
+        metadata are not included. The report stays in memory until you open new
+        files or close the app.
+      </p>
+      <p class="fine-print">
+        DWV is not certified for diagnostic use.
+        <a
+          href="https://github.com/ahmedalhulaibi/dwv"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Source code</a
+        >
+        ·
+        <a
+          href="https://github.com/ivmartel/dwv"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Upstream DWV</a
+        >
+        · GPL-3.0
+      </p>
+    </dialog>
+    <noscript
+      ><p class="noscript">Enable JavaScript to open scans in DWV.</p></noscript
+    >
+  </body>
 </html>

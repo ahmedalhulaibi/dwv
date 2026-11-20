@@ -16,9 +16,17 @@ DWV library and test viewer remain available.
   cache. Remote study URLs still require a connection.
 - Updates activate after all viewer windows are closed. Browser storage
   eviction can remove offline access; reconnect and reload to restore it.
+- If files fail to open, expand **Technical details** below the error and
+  select **Copy diagnostics**. The report includes the loader error, stack,
+  browser/app version and file counts/types/sizes. Scan contents and DICOM
+  metadata are excluded; file names and paths are redacted. Review technical
+  messages before sharing. Reports stay in memory and reset on the next import.
 - Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS
   (or localhost for development). Paths support a subdirectory such as `/dwv/`.
   Deployment is manual. GitHub Actions is disabled; commits do not publish.
+  Pages serves compiled assets from the `pwa-site` branch root, including
+  `.nojekyll`. Publish the complete build directory to that branch after
+  local verification; no server process is required for offline local files.
 
 Installation behavior follows the [MDN PWA guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
 This viewer is for personal viewing and is not certified for diagnostic use.
