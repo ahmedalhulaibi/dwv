@@ -10,6 +10,9 @@ DWV library and test viewer remain available.
   together. Folder import is available in browsers with a folder picker.
   ZIP import accepts uppercase and extensionless DICOM files and ignores
   DICOMDIR records and macOS sidecar files.
+- Browse with **Previous**, **Next** or the horizontal slider above the scan.
+  The image counter includes time frames. These controls work with any tool
+  selected; multiple-view layouts also offer a view selector.
 - Install: Safari on iPhone/iPad → Share → Add to Home Screen; Android →
   **Install app** or the browser's install menu.
 - Wait for **Available offline** before disconnecting. The application and

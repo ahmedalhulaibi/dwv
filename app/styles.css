@@ -255,6 +255,45 @@ canvas {
   min-height: 40px;
   padding: 8px 0;
 }
+.image-navigation {
+  position: sticky;
+  top: max(8px, env(safe-area-inset-top));
+  z-index: 40;
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.image-navigation-heading,
+.image-navigation-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.image-navigation-heading {
+  margin-bottom: 8px;
+}
+.image-navigation h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.image-navigation button {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+#image-counter {
+  min-width: 0;
+  text-align: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+#image-range {
+  width: 100%;
+  margin: 4px 0 0;
+}
 .load-state p {
   font-size: 13px;
   color: var(--muted);

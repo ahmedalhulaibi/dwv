@@ -377,7 +377,14 @@ export class ScrollDragBehavior extends DragBehavior {
     const positionHelper = layerGroup.getPositionHelper();
 
     if (drag.passesThresholdY() && layerGroup.canScroll()) {
-      if (drag.delta.y > 0) {
+      if (layerGroup.moreThanOne(3) &&
+        positionHelper.getMaximumScrollValue() === 0) {
+        if (drag.delta.y > 0) {
+          positionHelper.decrementPosition(3);
+        } else {
+          positionHelper.incrementPosition(3);
+        }
+      } else if (drag.delta.y > 0) {
         positionHelper.decrementPositionAlongScroll();
       } else {
         positionHelper.incrementPositionAlongScroll();

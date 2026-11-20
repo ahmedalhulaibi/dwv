@@ -58,6 +58,57 @@
           <h2>Scan workspace</h2>
           <span id="connection">Online</span>
         </div>
+        <nav
+          class="image-navigation"
+          id="image-navigation"
+          aria-label="Image navigation"
+        >
+          <div class="image-navigation-heading">
+            <h3>Browse images</h3>
+            <select
+              id="navigation-view"
+              aria-label="View to navigate"
+              hidden
+            ></select>
+          </div>
+          <div class="image-navigation-controls">
+            <button
+              id="previous-image"
+              type="button"
+              aria-label="Previous image"
+              disabled
+            >
+              <span aria-hidden="true">←</span> Previous
+            </button>
+            <output
+              id="image-counter"
+              for="image-range"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              >No images open</output
+            >
+            <button
+              id="next-image"
+              type="button"
+              aria-label="Next image"
+              disabled
+            >
+              Next <span aria-hidden="true">→</span>
+            </button>
+          </div>
+          <input
+            id="image-range"
+            type="range"
+            min="1"
+            max="1"
+            value="1"
+            step="1"
+            aria-label="Image"
+            aria-valuetext="No images open"
+            disabled
+          />
+        </nav>
         <div class="canvas-shell" id="dropzone">
           <div
             id="dwv"
@@ -150,7 +201,7 @@
           >
         </div>
         <p class="gesture-hint">
-          Scroll through slices · Adjust contrast · Pinch to zoom
+          Browse images with Previous, Next or the slider above. Pinch to zoom.
         </p>
       </section>
 
@@ -228,6 +279,13 @@
         Choose the DICOM files from your scan disc or download, or open a ZIP
         archive. Select all files in a series together. A folder picker is
         available where your browser supports it.
+      </p>
+      <h3>Browse your images</h3>
+      <p>
+        Use Previous and Next above the scan, or move the image slider. The
+        counter shows your position in the study, including time frames. In a
+        multiple-view layout, choose which view to navigate. These controls work
+        with any scan tool selected.
       </p>
       <h3>Use the viewer</h3>
       <p>

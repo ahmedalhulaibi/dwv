@@ -3,12 +3,14 @@ import {ViewerUI} from '../dev/viewer/src/viewerUI.js';
 import {getURLsFromKeyValueUri} from '../src/utils/uri.js';
 import {setupInstall} from './install.js';
 import {setupDiagnostics} from './diagnostics.js';
+import {setupNavigation} from './navigation.js';
 
 const service = new DwvAppService({debug: false});
 service.registerListeners();
 const viewer = new ViewerUI(service);
 viewer.setup();
 viewer.registerListeners();
+setupNavigation(service, document);
 
 const byId = (id) => document.getElementById(id);
 const status = byId('load-status');
