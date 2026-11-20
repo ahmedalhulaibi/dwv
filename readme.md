@@ -8,6 +8,8 @@ DWV library and test viewer remain available.
 
 - Open local DICOM files, ZIP archives or image files. Select a whole series
   together. Folder import is available in browsers with a folder picker.
+  ZIP import accepts uppercase and extensionless DICOM files and ignores
+  DICOMDIR records and macOS sidecar files.
 - Install: Safari on iPhone/iPad → Share → Add to Home Screen; Android →
   **Install app** or the browser's install menu.
 - Wait for **Available offline** before disconnecting. The application and
@@ -18,7 +20,9 @@ DWV library and test viewer remain available.
   eviction can remove offline access; reconnect and reload to restore it.
 - If files fail to open, expand **Technical details** below the error and
   select **Copy diagnostics**. The report includes the loader error, stack,
-  browser/app version and file counts/types/sizes. Scan contents and DICOM
+  browser/app version and file counts/types/sizes. If no DICOM images are
+  found in a ZIP, it also includes archive entry counts and safe file types.
+  Scan contents and DICOM
   metadata are excluded; file names and paths are redacted. Review technical
   messages before sharing. Reports stay in memory and reset on the next import.
 - Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS

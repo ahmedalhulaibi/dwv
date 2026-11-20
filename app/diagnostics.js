@@ -79,6 +79,28 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
     if (typeof error?.stack === 'string') {
       result.stack = redact(error.stack);
     }
+    if (error?.archive && typeof error.archive === 'object') {
+      const archive = {};
+      for (const key of ['fileCount',
+        'directoryCount',
+        'ignoredFileCount',
+        'dicomFileCount']) {
+        const value = error.archive[key];
+        if (Number.isSafeInteger(value) && value >= 0) {
+          archive[key] = value;
+        }
+      }
+      if (Array.isArray(error.archive.types)) {
+        archive.types = error.archive.types.filter((entry) => entry &&
+          (extensions.has(entry.extension) ||
+            ['none', 'other'].includes(entry.extension)) &&
+            Number.isSafeInteger(entry.count) && entry.count >= 0)
+          .slice(0, 20)
+          .map(({extension, count}) => ({extension, count}))
+          .sort((a, b) => a.extension.localeCompare(b.extension));
+      }
+      result.archive = archive;
+    }
     if (depth < 3 && typeof error?.cause !== 'undefined') {
       result.cause = describeError(error.cause, depth + 1);
     }
