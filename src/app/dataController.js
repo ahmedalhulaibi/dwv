@@ -36,7 +36,13 @@ import {
  */
 const TagKeys = {
   Modality: '00080060',
-  SOPInstanceUID: '00080018'
+  SOPClassUID: '00080016',
+  SOPInstanceUID: '00080018',
+  SeriesInstanceUID: '0020000E',
+  InstanceNumber: '00200013',
+  ImagePositionPatient: '00200032',
+  ImageOrientationPatient: '00200037',
+  NumberOfFrames: '00280008'
 };
 
 /**
@@ -60,15 +66,17 @@ export const dataEventNames = [
  * called on each raw (not yet merged) meta to get its second id, added
  * as a suffix to disambiguate metas that would otherwise share the
  * same base id.
+ * @param {string} [idKey] Metadata identity key; defaults to InstanceNumber
+ * for DICOM data and imageUid for other images.
  * @returns {Record<string, DataElement>} The merged data.
  */
-function mergeMeta(meta0, meta1, secondIdGetter) {
+function mergeMeta(meta0, meta1, secondIdGetter, idKey) {
   // update meta data
-  let idKey;
-  if (typeof meta1['00020010'] !== 'undefined') {
+  if (typeof idKey === 'undefined' &&
+    typeof meta1['00020010'] !== 'undefined') {
     // dicom case, use 'InstanceNumber'
     idKey = '00200013';
-  } else {
+  } else if (typeof idKey === 'undefined') {
     idKey = 'imageUid';
   }
   // merge
@@ -211,7 +219,7 @@ export class DicomData {
         this.#appendImage(data.image);
       }
 
-      if (isNewFile) {
+      if (isNewFile && !this.#hasDuplicateOrigin) {
         this.#mergeMeta(data.meta);
       }
     }
@@ -329,7 +337,8 @@ export class DicomSliceDataList {
     }
 
     // guess the volume id tag and get indices per volumes
-    const {volsIndices, volumeIds, volumeIndexGetter} =
+    const {volsIndices, volumeIds, volumeIndexGetter, metaIdKey} =
+      this.#getNonSpatialUltrasoundFrames() ??
       this.#guessVolumesIndices(originList);
 
     if (typeof volsIndices === 'undefined') {
@@ -354,7 +363,7 @@ export class DicomSliceDataList {
       if (typeof meta === 'undefined') {
         meta = sliceMeta;
       } else {
-        meta = mergeMeta(meta, sliceMeta, volumeIndexGetter);
+        meta = mergeMeta(meta, sliceMeta, volumeIndexGetter, metaIdKey);
       }
       // image
       for (const index of indices) {
@@ -368,6 +377,50 @@ export class DicomSliceDataList {
       }
     }
     return {image, meta};
+  }
+
+  /**
+   * Independent ultrasound stills have no patient-space slice positions.
+   * Use ordinal frames, as for non-spatial multi-frame images, rather than
+   * inventing spatial positions or acquisition times.
+   *
+   * @returns {object|undefined} Frame grouping for compatible still images.
+   */
+  #getNonSpatialUltrasoundFrames() {
+    const series = safeGet(this.#list[0].meta, TagKeys.SeriesInstanceUID);
+    const uids = this.#list.map((data) =>
+      safeGet(data.meta, TagKeys.SOPInstanceUID));
+    if (typeof series !== 'string' || series.length === 0 ||
+      uids.some((uid) => typeof uid !== 'string' || uid.length === 0) ||
+      new Set(uids).size !== uids.length ||
+        !this.#list.every((data) =>
+          safeGet(data.meta, TagKeys.SOPClassUID) ===
+          '1.2.840.10008.5.1.4.1.1.6.1' &&
+          safeGet(data.meta, TagKeys.SeriesInstanceUID) === series &&
+          typeof data.frameNumber === 'undefined' &&
+          typeof data.meta[TagKeys.ImagePositionPatient] === 'undefined' &&
+          typeof data.meta[TagKeys.ImageOrientationPatient] === 'undefined' &&
+          (typeof safeGet(data.meta, TagKeys.NumberOfFrames) === 'undefined' ||
+            Number(safeGet(data.meta, TagKeys.NumberOfFrames)) === 1) &&
+            data.image.getGeometry().getSize().getValues().slice(2)
+              .every((value) => value === 1))) {
+      return;
+    }
+    const indices = this.#list.map((_, index) => index);
+    const numbers = this.#list.map((data) => {
+      const value = safeGet(data.meta, TagKeys.InstanceNumber);
+      return typeof value === 'undefined' || String(value).trim() === ''
+        ? NaN : Number(value);
+    });
+    if (numbers.every(Number.isSafeInteger) &&
+      new Set(numbers).size === numbers.length) {
+      indices.sort((a, b) => numbers[a] - numbers[b]);
+    }
+    return {
+      volsIndices: indices.map((index) => [index]),
+      volumeIds: indices.map((_, ordinal) => ({id: {value: ordinal}})),
+      metaIdKey: TagKeys.SOPInstanceUID
+    };
   }
 
   /**

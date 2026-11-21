@@ -350,6 +350,7 @@ export class ViewLayer {
       this.#viewController.setImage(value[0]);
       this.#setBaseSize(this.#viewController.getImageSize().get2D());
       this.#needsDataUpdate = true;
+      this.#fireEvent(new CustomEvent('imageset'));
     }
   };
 

@@ -246,6 +246,13 @@ export class LayerGroup extends EventTarget {
   }
 
   /**
+   * Invalidate cached geometry after a view replaces its image.
+   */
+  #resetPositionHelper = () => {
+    this.#positionHelper = undefined;
+  };
+
+  /**
    * @param {HTMLElement} containerDiv The associated HTML div.
    * @param {boolean} [withInfoLayer] Optional with info layer flag,
    * default to false.
@@ -874,6 +881,7 @@ export class LayerGroup extends EventTarget {
    * @param {ViewLayer} viewLayer The view layer to bind.
    */
   #bindViewLayer(viewLayer) {
+    viewLayer.addEventListener('imageset', this.#resetPositionHelper);
     // listen to position change to update other group layers
     viewLayer.addEventListener(
       'positionchange', this.updateLayersToPositionChange);
@@ -893,6 +901,7 @@ export class LayerGroup extends EventTarget {
    * @param {ViewLayer} viewLayer The view layer to unbind.
    */
   #unbindViewLayer(viewLayer) {
+    viewLayer.removeEventListener('imageset', this.#resetPositionHelper);
     // stop listening to position change to update other group layers
     viewLayer.removeEventListener(
       'positionchange', this.updateLayersToPositionChange);

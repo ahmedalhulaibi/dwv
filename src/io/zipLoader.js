@@ -42,7 +42,15 @@ export class ZipLoader extends LoaderBase {
     if (typeof error !== 'undefined') {
       this.onerror({error});
     }
-    this.onloadend(event);
+    const detail = {...event};
+    if (load.archive) {
+      detail.archive = {
+        ...load.archive,
+        dicomFileCount: load.files.length,
+        skippedFileCount: load.entries.length - load.files.length
+      };
+    }
+    this.onloadend(detail);
   }
 
   /**

@@ -161,18 +161,20 @@ export class FilesLoader extends LoadHandlers {
    * Increment the counter of load end events
    *   and run callbacks when all done, erroneus or not.
    *
-   * @param {object} _event The load end event.
+   * @param {object} event The load end event.
    */
-  #addLoadend = (_event) => {
+  #addLoadend = (event) => {
     this.#nLoadend++;
     // call onloadend when all is run
     // (not using the input event since it is
     //   an individual load end)
     if (this.#nLoadend === this.#inputData.length) {
       this.#isLoading = false;
-      this.onloadend({
-        source: this.#inputData
-      });
+      const detail = {source: this.#inputData};
+      if (this.#inputData.length === 1 && event?.archive) {
+        detail.archive = event.archive;
+      }
+      this.onloadend(detail);
     }
   };
 

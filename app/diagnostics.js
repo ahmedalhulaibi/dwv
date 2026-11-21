@@ -68,6 +68,54 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
         '[redacted]')
       .slice(0, 8000);
   };
+  const describeArchive = (value) => {
+    const archive = {};
+    for (const key of ['fileCount',
+      'directoryCount',
+      'ignoredFileCount',
+      'dicomFileCount',
+      'skippedFileCount']) {
+      if (Number.isSafeInteger(value[key]) && value[key] >= 0) {
+        archive[key] = value[key];
+      }
+    }
+    if (Array.isArray(value.types)) {
+      archive.types = value.types.filter((entry) => entry &&
+        (extensions.has(entry.extension) ||
+          ['none', 'other'].includes(entry.extension)) &&
+          Number.isSafeInteger(entry.count) && entry.count >= 0)
+        .slice(0, 20)
+        .map(({extension, count}) => ({extension, count}))
+        .sort((a, b) => a.extension.localeCompare(b.extension));
+    }
+    return archive;
+  };
+  const describeOutput = () => {
+    const controller = service.getDataController?.();
+    if (!controller) {
+      return;
+    }
+    const output = [];
+    for (const dataId of controller.getDataIds().slice(0, 128)) {
+      if (!/^\d+$/.test(String(dataId))) {
+        continue;
+      }
+      const data = controller.get(dataId);
+      const dimensions = data?.image?.getGeometry().getSize().getValues();
+      if (!Array.isArray(dimensions) || dimensions.length === 0 ||
+        dimensions.length > 8 || dimensions.some((value) =>
+        !Number.isSafeInteger(value) || value <= 0)) {
+        continue;
+      }
+      const item = {dataId: String(dataId), dimensions: dimensions.slice()};
+      const complete = data.getComplete?.();
+      if (typeof complete === 'boolean') {
+        item.complete = complete;
+      }
+      output.push(item);
+    }
+    return output;
+  };
   const describeError = (error, depth = 0) => {
     const name = typeof error?.name === 'string' &&
       /^[A-Za-z]{1,40}Error$|^Error$/.test(error.name)
@@ -80,26 +128,7 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
       result.stack = redact(error.stack);
     }
     if (error?.archive && typeof error.archive === 'object') {
-      const archive = {};
-      for (const key of ['fileCount',
-        'directoryCount',
-        'ignoredFileCount',
-        'dicomFileCount']) {
-        const value = error.archive[key];
-        if (Number.isSafeInteger(value) && value >= 0) {
-          archive[key] = value;
-        }
-      }
-      if (Array.isArray(error.archive.types)) {
-        archive.types = error.archive.types.filter((entry) => entry &&
-          (extensions.has(entry.extension) ||
-            ['none', 'other'].includes(entry.extension)) &&
-            Number.isSafeInteger(entry.count) && entry.count >= 0)
-          .slice(0, 20)
-          .map(({extension, count}) => ({extension, count}))
-          .sort((a, b) => a.extension.localeCompare(b.extension));
-      }
-      result.archive = archive;
+      result.archive = describeArchive(error.archive);
     }
     if (depth < 3 && typeof error?.cause !== 'undefined') {
       result.cause = describeError(error.cause, depth + 1);
@@ -163,6 +192,15 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
     }
     if (typeof error !== 'undefined') {
       entry.error = describeError(error);
+    }
+    if (type === 'loadend') {
+      if (detail.archive && typeof detail.archive === 'object') {
+        entry.archive = describeArchive(detail.archive);
+      }
+      const output = describeOutput();
+      if (typeof output !== 'undefined') {
+        entry.output = output;
+      }
     }
     report.events.push(entry);
     if (report.events.length > 20) {

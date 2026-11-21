@@ -169,24 +169,24 @@
             <p id="error-message" role="alert"></p>
             <button id="dismiss-error">Dismiss error</button>
           </div>
-          <details id="error-diagnostics">
-            <summary>Technical details</summary>
-            <p class="diagnostic-note">
-              File names and scan metadata are omitted. Review technical
-              messages before sharing.
-            </p>
-            <button id="copy-diagnostics">Copy diagnostics</button>
-            <p id="copy-status" role="status"></p>
-            <label for="diagnostic-report">Diagnostic report</label>
-            <textarea
-              id="diagnostic-report"
-              readonly
-              rows="12"
-              spellcheck="false"
-              autocapitalize="off"
-            ></textarea>
-          </details>
         </div>
+        <details id="error-diagnostics">
+          <summary>Import diagnostics</summary>
+          <p class="diagnostic-note">
+            File names and scan metadata are omitted. Review technical messages
+            before sharing.
+          </p>
+          <button id="copy-diagnostics">Copy diagnostics</button>
+          <p id="copy-status" role="status"></p>
+          <label for="diagnostic-report">Diagnostic report</label>
+          <textarea
+            id="diagnostic-report"
+            readonly
+            rows="12"
+            spellcheck="false"
+            autocapitalize="off"
+          ></textarea>
+        </details>
         <div id="tools-line">
           <fieldset id="tools" disabled><legend>Scan tools</legend></fieldset>
         </div>
@@ -314,7 +314,7 @@
       </p>
       <h3>Report a load error</h3>
       <p>
-        Expand Technical details below an error, then select Copy diagnostics.
+        Expand Import diagnostics below the scan, then select Copy diagnostics.
         Review the report before sharing it. File names, scan contents and DICOM
         metadata are not included. The report stays in memory until you open new
         files or close the app.

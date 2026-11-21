@@ -11,6 +11,7 @@ DWV library and test viewer remain available.
   ZIP import accepts uppercase and extensionless DICOM files and ignores
   DICOMDIR records and macOS sidecar files.
 - Browse with **Previous**, **Next** or the horizontal slider above the scan.
+  Independent ultrasound still images are browsable alongside time frames.
   The image counter includes time frames. These controls work with any tool
   selected; multiple-view layouts also offer a view selector.
 - Install: Safari on iPhone/iPad → Share → Add to Home Screen; Android →
@@ -21,12 +22,12 @@ DWV library and test viewer remain available.
   cache. Remote study URLs still require a connection.
 - Updates activate after all viewer windows are closed. Browser storage
   eviction can remove offline access; reconnect and reload to restore it.
-- If files fail to open, expand **Technical details** below the error and
+- To check an import, expand **Import diagnostics** below the scan and
   select **Copy diagnostics**. The report includes the loader error, stack,
-  browser/app version and file counts/types/sizes. If no DICOM images are
-  found in a ZIP, it also includes archive entry counts and safe file types.
-  Scan contents and DICOM
-  metadata are excluded; file names and paths are redacted. Review technical
+  browser/app version and file counts/types/sizes. ZIP imports also include
+  discovered/skipped entry counts and safe file types. Loaded images include
+  dimensions and completion flags. Scan contents and DICOM metadata are
+  excluded; file names and paths are redacted. Review technical
   messages before sharing. Reports stay in memory and reset on the next import.
 - Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS
   (or localhost for development). Paths support a subdirectory such as `/dwv/`.
