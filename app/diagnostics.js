@@ -1,4 +1,6 @@
 import {getDwvVersion} from '../src/dicom/dicomParser.js';
+import {safeGet} from '../src/dicom/dataElement.js';
+import {ImportInspection} from './importInspection.js';
 
 const extensions = new Set([
   'zip',
@@ -38,6 +40,7 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
   let sources = new Set();
   let revision = 0;
   let report;
+  let inspection;
 
   const rememberSource = (source) => {
     if (typeof source === 'string' && source.length !== 0) {
@@ -141,6 +144,7 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
     textarea.value = JSON.stringify(report, null, 2);
   };
   const begin = (input) => {
+    inspection = new ImportInspection();
     const standalone = browser.matchMedia?.('(display-mode: standalone)')
       .matches || navigator.standalone;
     report = {
@@ -211,6 +215,17 @@ export function setupDiagnostics(service, rootDocument, options = {}) {
     refresh();
   };
   begin({method: 'none', fileCount: 0, totalBytes: 0, types: []});
+  service.addEventListener('loaditem', (event) => {
+    const data = event.detail?.data;
+    if (data?.meta && typeof data.meta === 'object') {
+      for (const key of ['00080018', '0020000D', '0020000E']) {
+        rememberSource(safeGet(data.meta, key));
+      }
+    }
+    inspection.add(data);
+    report.inspection = inspection.getSummary();
+    refresh();
+  });
   for (const type of ['error', 'timeout']) {
     service.addEventListener(type, (event) => {
       const detail = event.detail ?? {};

@@ -26,8 +26,11 @@ DWV library and test viewer remain available.
   select **Copy diagnostics**. The report includes the loader error, stack,
   browser/app version and file counts/types/sizes. ZIP imports also include
   discovered/skipped entry counts and safe file types. Loaded images include
-  dimensions and completion flags. Scan contents and DICOM metadata are
-  excluded; file names and paths are redacted. Review technical
+  dimensions and completion flags. Inspection summarizes parsed files by object
+  type and group, including duplicate counts and image properties. It covers
+  files parsed before the import stops. Completion failures report their error.
+  Scan contents, patient details and DICOM identifiers are excluded; file names
+  and paths are redacted. Review technical
   messages before sharing. Reports stay in memory and reset on the next import.
 - Build with `corepack yarn build-pwa`, then serve `build/pwa/` from HTTPS
   (or localhost for development). Paths support a subdirectory such as `/dwv/`.

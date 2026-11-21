@@ -1996,7 +1996,20 @@ export class App extends EventTarget {
    */
   #onload = (event) => {
     // mark data as complete
-    const res = this.#dataController.markDataAsComplete(event.detail.dataid);
+    let res;
+    try {
+      res = this.#dataController.markDataAsComplete(event.detail.dataid);
+    } catch (error) {
+      this.dispatchEvent(new CustomEvent('error', {
+        detail: {
+          dataid: event.detail.dataid,
+          source: event.detail.source,
+          error
+        }
+      }));
+      this.abortLoad(event.detail.dataid);
+      return;
+    }
 
     // render if image has changed
     if (this.#options.viewOnFirstLoadItem &&
